@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using SimpleFileBrowser.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -34,7 +36,7 @@ namespace SimpleFileBrowser.Controllers
                         Name = fileInfo.Name,
                         FullName = fileInfo.FullName,
                         Size = fileInfo.Length,
-                        LastModifiedDate = fileInfo.LastWriteTime
+                        LastModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd tt hh-mm-ss")
                     })
                     .ToArray();
             }
@@ -55,7 +57,7 @@ namespace SimpleFileBrowser.Controllers
                     {
                         Name = folderInfo.Name,
                         FullName = folderInfo.FullName,
-                        LastModifiedDate = folderInfo.LastWriteTime
+                        LastModifiedDate = folderInfo.LastWriteTime.ToString("yyyy-MM-dd tt hh-mm-ss")
                     })
                     .ToArray();
             }
@@ -86,7 +88,7 @@ namespace SimpleFileBrowser.Controllers
         }
 
         [HttpPost("rename/{path}/{name}")]
-        public ActionResult Rename(string path, string name)
+        public ActionResult RenameFileFolder(string path, string name)
         {
             string newPath = Path.Join(Path.GetDirectoryName(path), Path.GetFileName(name));
 
@@ -95,7 +97,7 @@ namespace SimpleFileBrowser.Controllers
                 Directory.Move(path, newPath);
                 return Ok();
             }
-            else if(System.IO.File.Exists(path))
+            else if (System.IO.File.Exists(path))
             {
                 System.IO.File.Move(path, newPath);
                 return Ok();
@@ -109,7 +111,7 @@ namespace SimpleFileBrowser.Controllers
         [HttpPost("folder/{path}/{name}")]
         public ActionResult CreateFolder(string path, string name)
         {
-            string newPath = Path.Join(Path.GetDirectoryName(path), Path.GetFileName(name));
+            string newPath = Path.Join(path, Path.GetFileName(name));
 
             if (Directory.Exists(path))
             {
@@ -119,6 +121,91 @@ namespace SimpleFileBrowser.Controllers
             else
             {
                 return NotFound();
+            }
+        }
+
+        [HttpPost("delete/{path}")]
+        public ActionResult DeleteFileFolder(string path)
+        {
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, true);
+                return Ok();
+            }
+            else if (System.IO.File.Exists(path))
+            {
+                System.IO.File.Delete(path);
+                return Ok();
+            }
+            else
+            {
+                return NotFound();
+            }
+        }
+
+        [HttpGet("downloadFile/{path}")]
+        public FileResult DownloadFile(string path)
+        {
+            return File(System.IO.File.OpenRead(path), "application/octet-stream", Path.GetFileName(path));
+        }
+
+        [HttpGet("downloadFolder/{path}")]
+        public FileResult DownloadFolder(string path)
+        {
+            if (!Directory.Exists("temp"))
+            {
+                Directory.CreateDirectory("temp");
+            }
+
+            foreach (var file in Directory.GetFiles("temp"))
+            {
+                if (DateTime.Now - System.IO.File.GetCreationTime(file) > TimeSpan.FromMinutes(10))
+                {
+                    _logger.LogInformation(file + " delete");
+
+                    try
+                    {
+                        System.IO.File.Delete(file);
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogError(e, file + " delete fail");
+                    }
+                }
+            }
+
+            string tempFile = Path.Combine("temp", $"{DateTime.Now.Ticks.ToString()}");
+
+            ZipFile.CreateFromDirectory(path, tempFile);
+
+            return File(System.IO.File.OpenRead(tempFile), "application/octet-stream", Path.GetFileName(path) + ".zip");
+        }
+
+        [HttpPost("upload/{path}")]
+        [Consumes("multipart/form-data")]
+        public ActionResult UploadFileAsync(string path)
+        {
+            try
+            {
+                var files = Request.Form.Files;
+
+                foreach (IFormFile file in files)
+                {
+                    if (file.Length == 0)
+                        continue;
+
+                    var filePath = Path.Join(path, Path.GetFileName(file.FileName));
+
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        file.CopyTo(fileStream);
+                    }
+                }
+                return new OkObjectResult("Yes");
+            }
+            catch (Exception ex)
+            {
+                return new BadRequestObjectResult(ex.Message);
             }
         }
     }

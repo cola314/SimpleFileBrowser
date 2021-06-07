@@ -13,6 +13,6 @@ namespace SimpleFileBrowser.Models
 
         public long Size { get; set; }
 
-        public DateTime LastModifiedDate { get; set; }
+        public string LastModifiedDate { get; set; }
     }
 }
