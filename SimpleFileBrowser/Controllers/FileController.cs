@@ -27,6 +27,8 @@ namespace SimpleFileBrowser.Controllers
         [HttpGet("files/{path}")]
         public ActionResult<FileInformation[]> GetFiles(string path)
         {
+            path = path.Replace('\\', Path.DirectorySeparatorChar);
+
             if (Directory.Exists(path))
             {
                 return Directory.GetFiles(path)
@@ -34,7 +36,7 @@ namespace SimpleFileBrowser.Controllers
                     .Select(fileInfo => new FileInformation()
                     {
                         Name = fileInfo.Name,
-                        FullName = fileInfo.FullName,
+                        FullName = fileInfo.FullName.Replace("/", "\\"),
                         Size = fileInfo.Length,
                         LastModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd tt hh-mm-ss")
                     })
@@ -49,6 +51,8 @@ namespace SimpleFileBrowser.Controllers
         [HttpGet("folders/{path}")]
         public ActionResult<FolderInformation[]> GetFolders(string path)
         {
+            path = path.Replace('\\', Path.DirectorySeparatorChar);
+
             if (Directory.Exists(path))
             {
                 return Directory.GetDirectories(path)
@@ -56,7 +60,7 @@ namespace SimpleFileBrowser.Controllers
                     .Select(folderInfo => new FolderInformation()
                     {
                         Name = folderInfo.Name,
-                        FullName = folderInfo.FullName,
+                        FullName = folderInfo.FullName.Replace("/", "\\"),
                         LastModifiedDate = folderInfo.LastWriteTime.ToString("yyyy-MM-dd tt hh-mm-ss")
                     })
                     .ToArray();
@@ -70,6 +74,8 @@ namespace SimpleFileBrowser.Controllers
         [HttpGet("hash/{path}")]
         public ActionResult<HashInformation> GetHash(string path, string method)
         {
+            path = path.Replace('\\', Path.DirectorySeparatorChar);
+
             if (System.IO.File.Exists(path))
             {
                 var file = new FileInfo(path);
@@ -90,6 +96,8 @@ namespace SimpleFileBrowser.Controllers
         [HttpPost("rename/{path}/{name}")]
         public ActionResult RenameFileFolder(string path, string name)
         {
+            path = path.Replace('\\', Path.DirectorySeparatorChar);
+
             string newPath = Path.Join(Path.GetDirectoryName(path), Path.GetFileName(name));
 
             if (Directory.Exists(path))
@@ -111,6 +119,8 @@ namespace SimpleFileBrowser.Controllers
         [HttpPost("folder/{path}/{name}")]
         public ActionResult CreateFolder(string path, string name)
         {
+            path = path.Replace('\\', Path.DirectorySeparatorChar);
+
             string newPath = Path.Join(path, Path.GetFileName(name));
 
             if (Directory.Exists(path))
@@ -127,6 +137,8 @@ namespace SimpleFileBrowser.Controllers
         [HttpPost("delete/{path}")]
         public ActionResult DeleteFileFolder(string path)
         {
+            path = path.Replace('\\', Path.DirectorySeparatorChar);
+
             if (Directory.Exists(path))
             {
                 Directory.Delete(path, true);
@@ -146,12 +158,16 @@ namespace SimpleFileBrowser.Controllers
         [HttpGet("downloadFile/{path}")]
         public FileResult DownloadFile(string path)
         {
+            path = path.Replace('\\', Path.DirectorySeparatorChar);
+
             return File(System.IO.File.OpenRead(path), "application/octet-stream", Path.GetFileName(path));
         }
 
         [HttpGet("downloadFolder/{path}")]
         public FileResult DownloadFolder(string path)
         {
+            path = path.Replace('\\', Path.DirectorySeparatorChar);
+
             if (!Directory.Exists("temp"))
             {
                 Directory.CreateDirectory("temp");
@@ -185,6 +201,8 @@ namespace SimpleFileBrowser.Controllers
         [Consumes("multipart/form-data")]
         public ActionResult UploadFileAsync(string path)
         {
+            path = path.Replace('\\', Path.DirectorySeparatorChar);
+
             try
             {
                 var files = Request.Form.Files;

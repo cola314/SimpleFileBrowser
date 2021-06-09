@@ -15,7 +15,7 @@ window.jQuery = $;
 window.$ = $;
 global.jQuery = $;
 
-const API_SERVER = '';
+const API_SERVER = window.location.origin;
 const ROOT_DIR = "storage";
 
 export function Home() {
@@ -95,8 +95,8 @@ export function Home() {
   const downloadFile = (file) => {
     window.open(`${API_SERVER}/api/downloadFile/${encodeURI(file.fullName)}`);
   }
-  const downloadFolder = (file) => {
-    window.open(`${API_SERVER}/api/downloadFolder/${encodeURI(file.fullName)}`);
+  const downloadFolder = (folder) => {
+    window.open(`${API_SERVER}/api/downloadFolder/${encodeURI(folder.fullName)}`);
   }
   const onSaveFiles = (e) => {
     const formData = new FormData();
@@ -120,6 +120,24 @@ export function Home() {
   }
   const onFileUpload = () => {
     $('#fileInput').click();
+  }
+  const copyToClipboard = (value) => {
+    const t = document.createElement("textarea");
+    document.body.appendChild(t);
+    t.value = value;
+    t.select();
+    document.execCommand('copy');
+    document.body.removeChild(t);
+  };
+  const copyFileDownloadPath = (file) => {
+    copyToClipboard(`${API_SERVER}/api/downloadFile/${encodeURI(file.fullName)}`);
+    //컨텍스트 메뉴 닫히고 알림창이 뜨게함
+    setTimeout(() => alert('클립보드에 복사됬습니다'), 50);
+  }
+  const copyFolderDownloadPath = (folder) => {
+    copyToClipboard(`${API_SERVER}/api/downloadFolder/${encodeURI(folder.fullName)}`);
+    //컨텍스트 메뉴 닫히고 알림창이 뜨게함
+    setTimeout(() => alert('클립보드에 복사됬습니다'), 50);
   }
   return (
     <div className="mt-4">
@@ -182,6 +200,8 @@ export function Home() {
               <td>
                 <FolderContextMenu
                   id={folder.name + 'name'}
+                  moveDir={() => setCurrentPath(currentPath + '\\' + folder.name)}
+                  copyDownloadPath={() => copyFolderDownloadPath(folder)}
                   deleteFolder={() => deleteFileFolder(folder)}
                   renameFolder={() => renameFileFolder(folder)}
                   downloadFolder={() => downloadFolder(folder)}>
@@ -194,6 +214,8 @@ export function Home() {
               <td>
                 <FolderContextMenu
                   id={folder.name + 'last'}
+                  moveDir={() => setCurrentPath(currentPath + '\\' + folder.name)}
+                  copyDownloadPath={() => copyFolderDownloadPath(folder)}
                   deleteFolder={() => deleteFileFolder(folder)}
                   renameFolder={() => renameFileFolder(folder)}
                   downloadFolder={() => downloadFolder(folder)}>
@@ -203,6 +225,8 @@ export function Home() {
               <td className="text-right">
                 <FolderContextMenu
                   id={folder.name + 'size'}
+                  moveDir={() => setCurrentPath(currentPath + '\\' + folder.name)}
+                  copyDownloadPath={() => copyFolderDownloadPath(folder)}
                   deleteFolder={() => deleteFileFolder(folder)}
                   renameFolder={() => renameFileFolder(folder)}
                   downloadFolder={() => downloadFolder(folder)}>
@@ -219,7 +243,8 @@ export function Home() {
                   deleteFile={() => deleteFileFolder(file)}
                   renameFile={() => renameFileFolder(file)}
                   showFileHash={() => showFileHash(file)}
-                  downloadFile={() => downloadFile(file)}>
+                  downloadFile={() => downloadFile(file)}
+                  copyDownloadPath={() => copyFileDownloadPath(file)}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-file-earmark mr-2" viewBox="0 0 16 16">
                     <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z" />
                   </svg>
@@ -232,7 +257,8 @@ export function Home() {
                   deleteFile={() => deleteFileFolder(file)}
                   renameFile={() => renameFileFolder(file)}
                   showFileHash={() => showFileHash(file)}
-                  downloadFile={() => downloadFile(file)}>
+                  downloadFile={() => downloadFile(file)}
+                  copyDownloadPath={() => copyFileDownloadPath(file)}>
                   {file.lastModifiedDate}
                 </FileContextMenu>
               </td>
@@ -242,7 +268,8 @@ export function Home() {
                   deleteFile={() => deleteFileFolder(file)}
                   renameFile={() => renameFileFolder(file)}
                   showFileHash={() => showFileHash(file)}
-                  downloadFile={() => downloadFile(file)}>
+                  downloadFile={() => downloadFile(file)}
+                  copyDownloadPath={() => copyFileDownloadPath(file)}>
                   {FileSizeFormatter.convertToHumanFileSize(file.size, true)}
                 </FileContextMenu>
               </td>
