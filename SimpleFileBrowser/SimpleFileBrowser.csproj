@@ -17,14 +17,17 @@
 
   <ItemGroup>
     <!-- Don't publish the SPA source files, but do show them in the project files list -->
+    <Compile Remove="storage\**" />
+    <Compile Remove="temp\**" />
     <Content Remove="$(SpaRoot)**" />
+    <Content Remove="storage\**" />
+    <Content Remove="temp\**" />
+    <EmbeddedResource Remove="storage\**" />
+    <EmbeddedResource Remove="temp\**" />
     <None Remove="$(SpaRoot)**" />
+    <None Remove="storage\**" />
+    <None Remove="temp\**" />
     <None Include="$(SpaRoot)**" Exclude="$(SpaRoot)node_modules\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="storage\" />
-    <Folder Include="temp\" />
   </ItemGroup>
 
   <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">
