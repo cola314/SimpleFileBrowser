@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>파일 시스템</title>
+		<style>
+			a { color: inherit; 
+				text-decoration: none;
+			} 
+		</style>
+	</head>
+	<body>
+		<form ref='uploadForm' 
+			id='uploadForm' 
+			action='/upload' 
+			method='post' 
+			encType="multipart/form-data">
+				<input type="file" name="sampleFile" />
+				<input type='submit' value='Upload!' />
+		</form>
+		<br/>
+		<form ref='deleteForm' 
+			id='deleteForm' 
+			action='/delete' 
+			method='post' 
+			encType="multipart/form-data">
+				<input type="text" name="fileName" />
+				<input type='submit' value='delete!' />
+		</form>
+	</body>
+</html>
