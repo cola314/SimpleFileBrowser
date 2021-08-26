@@ -20,6 +20,10 @@ namespace SimpleFileBrowser
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
+                    webBuilder.ConfigureKestrel((context, options) =>
+                    {
+                        options.Limits.MaxRequestBodySize = 1073741824;
+                    });
                     webBuilder.UseStartup<Startup>();
                     webBuilder.UseUrls("http://*:9402/");
                 });
