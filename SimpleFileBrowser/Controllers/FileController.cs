@@ -198,7 +198,7 @@ namespace SimpleFileBrowser.Controllers
         }
 
         [HttpPost("upload/{path}")]
-        [Consumes("multipart/form-data")]
+        [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = int.MaxValue)]
         public ActionResult UploadFileAsync(string path)
         {
             path = path.Replace('\\', Path.DirectorySeparatorChar);
