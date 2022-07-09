@@ -9,222 +9,140 @@ using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using SimpleFileBrowser.Filters;
+using SimpleFileBrowser.Models.Paths;
+using SimpleFileBrowser.Services;
 
-namespace SimpleFileBrowser.Controllers
+namespace SimpleFileBrowser.Controllers;
+
+[FileExceptionFilter]
+[ApiController]
+[Route("api")]
+public class FileController : ControllerBase
 {
-    [ApiController]
-    [Route("api")]
-    public class FileController : ControllerBase
+    private readonly ILogger<FileController> _logger;
+    private readonly FileService _fileService;
+    private readonly PathResolver _pathResolver;
+
+    public FileController(ILogger<FileController> logger, FileService fileService, PathResolver pathResolver)
     {
-        private readonly ILogger<FileController> _logger;
+        _logger = logger;
+        _fileService = fileService;
+        _pathResolver = pathResolver;
+    }
 
-        public FileController(ILogger<FileController> logger)
+    [HttpGet("files/{path}")]
+    public ActionResult<FileInformation[]> GetFiles(string path)
+    {
+        return _fileService.GetFiles(path);
+    }
+
+    [HttpGet("folders/{path}")]
+    public ActionResult<FolderInformation[]> GetFolders(string path)
+    {
+        return _fileService.GetFolders(path);
+    }
+
+    [HttpGet("hash/{path}")]
+    public ActionResult<HashInformation> GetHash(string path)
+    {
+        return _fileService.GetHash(path);
+    }
+
+    [HttpPost("rename/{path}/{name}")]
+    public ActionResult RenameFileFolder(string path, string name)
+    {
+        string newPath = Path.Join(Path.GetDirectoryName(path), Path.GetFileName(name));
+
+        _fileService.Rename(path, newPath);
+        return Ok();
+    }
+
+    [HttpPost("folder/{path}/{name}")]
+    public ActionResult CreateFolder(string path, string name)
+    {
+        _fileService.CreateFolder(path, name);
+        return Ok();
+    }
+
+    [HttpPost("delete/{path}")]
+    public ActionResult DeleteFileFolder(string path)
+    {
+        _fileService.DeleteFileFolder(path);
+        return Ok();
+    }
+
+    [HttpGet("downloadFile/{path}")]
+    public FileResult DownloadFile(string path)
+    {
+        path = _pathResolver.Resolve(path);
+
+        return File(System.IO.File.OpenRead(path), "application/octet-stream", Path.GetFileName(path));
+    }
+
+    [HttpGet("downloadFolder/{path}")]
+    public FileResult DownloadFolder(string path)
+    {
+        path = _pathResolver.Resolve(path);
+
+        if (!Directory.Exists("temp"))
         {
-            _logger = logger;
+            Directory.CreateDirectory("temp");
         }
 
-        [HttpGet("files/{path}")]
-        public ActionResult<FileInformation[]> GetFiles(string path)
+        foreach (var file in Directory.GetFiles("temp"))
         {
-            path = path.Replace('\\', Path.DirectorySeparatorChar);
-
-            if (Directory.Exists(path))
+            if (DateTime.Now - System.IO.File.GetCreationTime(file) > TimeSpan.FromMinutes(10))
             {
-                return Directory.GetFiles(path)
-                    .Select(filePath => new FileInfo(filePath))
-                    .Select(fileInfo => new FileInformation()
-                    {
-                        Name = fileInfo.Name,
-                        FullName = fileInfo.FullName.Replace("/", "\\"),
-                        Size = fileInfo.Length,
-                        LastModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd tt hh-mm-ss")
-                    })
-                    .ToArray();
-            }
-            else
-            {
-                return NotFound();
-            }
-        }
+                _logger.LogInformation(file + " delete");
 
-        [HttpGet("folders/{path}")]
-        public ActionResult<FolderInformation[]> GetFolders(string path)
-        {
-            path = path.Replace('\\', Path.DirectorySeparatorChar);
-
-            if (Directory.Exists(path))
-            {
-                return Directory.GetDirectories(path)
-                    .Select(folderPath => new DirectoryInfo(folderPath))
-                    .Select(folderInfo => new FolderInformation()
-                    {
-                        Name = folderInfo.Name,
-                        FullName = folderInfo.FullName.Replace("/", "\\"),
-                        LastModifiedDate = folderInfo.LastWriteTime.ToString("yyyy-MM-dd tt hh-mm-ss")
-                    })
-                    .ToArray();
-            }
-            else
-            {
-                return NotFound();
-            }
-        }
-
-        [HttpGet("hash/{path}")]
-        public ActionResult<HashInformation> GetHash(string path, string method)
-        {
-            path = path.Replace('\\', Path.DirectorySeparatorChar);
-
-            if (System.IO.File.Exists(path))
-            {
-                var file = new FileInfo(path);
-
-                return new HashInformation()
+                try
                 {
-                    Md5 = BitConverter.ToString(MD5.Create().ComputeHash(file.OpenRead())).Replace("-", ""),
-                    Sha1 = BitConverter.ToString(SHA1.Create().ComputeHash(file.OpenRead())).Replace("-", ""),
-                    Sha256 = BitConverter.ToString(SHA256.Create().ComputeHash(file.OpenRead())).Replace("-", "")
-                };
-            }
-            else
-            {
-                return NotFound();
-            }
-        }
-
-        [HttpPost("rename/{path}/{name}")]
-        public ActionResult RenameFileFolder(string path, string name)
-        {
-            path = path.Replace('\\', Path.DirectorySeparatorChar);
-
-            string newPath = Path.Join(Path.GetDirectoryName(path), Path.GetFileName(name));
-
-            if (Directory.Exists(path))
-            {
-                Directory.Move(path, newPath);
-                return Ok();
-            }
-            else if (System.IO.File.Exists(path))
-            {
-                System.IO.File.Move(path, newPath);
-                return Ok();
-            }
-            else
-            {
-                return NotFound();
-            }
-        }
-
-        [HttpPost("folder/{path}/{name}")]
-        public ActionResult CreateFolder(string path, string name)
-        {
-            path = path.Replace('\\', Path.DirectorySeparatorChar);
-
-            string newPath = Path.Join(path, Path.GetFileName(name));
-
-            if (Directory.Exists(path))
-            {
-                Directory.CreateDirectory(newPath);
-                return Ok();
-            }
-            else
-            {
-                return NotFound();
-            }
-        }
-
-        [HttpPost("delete/{path}")]
-        public ActionResult DeleteFileFolder(string path)
-        {
-            path = path.Replace('\\', Path.DirectorySeparatorChar);
-
-            if (Directory.Exists(path))
-            {
-                Directory.Delete(path, true);
-                return Ok();
-            }
-            else if (System.IO.File.Exists(path))
-            {
-                System.IO.File.Delete(path);
-                return Ok();
-            }
-            else
-            {
-                return NotFound();
-            }
-        }
-
-        [HttpGet("downloadFile/{path}")]
-        public FileResult DownloadFile(string path)
-        {
-            path = path.Replace('\\', Path.DirectorySeparatorChar);
-
-            return File(System.IO.File.OpenRead(path), "application/octet-stream", Path.GetFileName(path));
-        }
-
-        [HttpGet("downloadFolder/{path}")]
-        public FileResult DownloadFolder(string path)
-        {
-            path = path.Replace('\\', Path.DirectorySeparatorChar);
-
-            if (!Directory.Exists("temp"))
-            {
-                Directory.CreateDirectory("temp");
-            }
-
-            foreach (var file in Directory.GetFiles("temp"))
-            {
-                if (DateTime.Now - System.IO.File.GetCreationTime(file) > TimeSpan.FromMinutes(10))
+                    System.IO.File.Delete(file);
+                }
+                catch (Exception e)
                 {
-                    _logger.LogInformation(file + " delete");
-
-                    try
-                    {
-                        System.IO.File.Delete(file);
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogError(e, file + " delete fail");
-                    }
+                    _logger.LogError(e, file + " delete fail");
                 }
             }
-
-            string tempFile = Path.Combine("temp", $"{DateTime.Now.Ticks.ToString()}");
-
-            ZipFile.CreateFromDirectory(path, tempFile);
-
-            return File(System.IO.File.OpenRead(tempFile), "application/octet-stream", Path.GetFileName(path) + ".zip");
         }
 
-        [HttpPost("upload/{path}")]
-        [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = int.MaxValue)]
-        public ActionResult UploadFileAsync(string path)
+        string tempFile = Path.Combine("temp", $"{DateTime.Now.Ticks.ToString()}");
+
+        ZipFile.CreateFromDirectory(path, tempFile);
+
+        return File(System.IO.File.OpenRead(tempFile), "application/octet-stream", Path.GetFileName(path) + ".zip");
+    }
+
+    [HttpPost("upload/{path}")]
+    [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = int.MaxValue)]
+    public ActionResult UploadFileAsync(string path)
+    {
+        path = _pathResolver.Resolve(path);
+
+        try
         {
-            path = path.Replace('\\', Path.DirectorySeparatorChar);
+            var files = Request.Form.Files;
 
-            try
+            foreach (IFormFile file in files)
             {
-                var files = Request.Form.Files;
+                if (file.Length == 0)
+                    continue;
 
-                foreach (IFormFile file in files)
+                var filePath = Path.Join(path, Path.GetFileName(file.FileName));
+
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
                 {
-                    if (file.Length == 0)
-                        continue;
-
-                    var filePath = Path.Join(path, Path.GetFileName(file.FileName));
-
-                    using (var fileStream = new FileStream(filePath, FileMode.Create))
-                    {
-                        file.CopyTo(fileStream);
-                    }
+                    file.CopyTo(fileStream);
                 }
-                return new OkObjectResult("Yes");
             }
-            catch (Exception ex)
-            {
-                return new BadRequestObjectResult(ex.Message);
-            }
+            return new OkObjectResult("Yes");
+        }
+        catch (Exception ex)
+        {
+            return new BadRequestObjectResult(ex.Message);
         }
     }
 }

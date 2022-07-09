@@ -5,13 +5,19 @@ using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using SimpleFileBrowser.Models.ApplicationEnvironments;
+using SimpleFileBrowser.Models.Paths;
+using SimpleFileBrowser.Services;
 
 namespace SimpleFileBrowser
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        private readonly IWebHostEnvironment _webHostEnvironment;
+
+        public Startup(IConfiguration configuration, IWebHostEnvironment webHostEnvironment)
         {
+            _webHostEnvironment = webHostEnvironment;
             Configuration = configuration;
         }
 
@@ -20,7 +26,6 @@ namespace SimpleFileBrowser
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-
             services.AddControllersWithViews();
 
             // In production, the React files will be served from this directory
@@ -28,6 +33,18 @@ namespace SimpleFileBrowser
             {
                 configuration.RootPath = "ClientApp/build";
             });
+
+            services.AddSingleton<FileService>();
+            services.AddSingleton<PathResolver>();
+
+            if (_webHostEnvironment.IsDevelopment())
+            {
+                services.AddSingleton<ApplicationEnvironment, DevApplicationEnvironment>();
+            }
+            else
+            {
+                services.AddSingleton<ApplicationEnvironment, ProductionApplicationEnvironment>();
+            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
