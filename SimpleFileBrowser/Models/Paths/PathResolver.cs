@@ -33,15 +33,15 @@ public class PathResolver
         parentDirectory = Path.GetFullPath(parentDirectory);
         subDirectory = Path.GetFullPath(subDirectory);
 
-        var parentDirectories = parentDirectory.Split(Path.DirectorySeparatorChar);
-        var subDirectories = subDirectory.Split(Path.DirectorySeparatorChar);
+        var parentDirectories = parentDirectory.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+        var subDirectories = subDirectory.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
 
         if (parentDirectories.Length >= subDirectories.Length)
             return false;
 
         for (int i = 0; i < parentDirectories.Length; i++)
         {
-            if (parentDirectories[i] != subDirectories[i])
+            if (!parentDirectories[i].Equals(subDirectories[i], StringComparison.OrdinalIgnoreCase))
                 return false;
         }
 
