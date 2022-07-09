@@ -2,23 +2,24 @@
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using Microsoft.AspNetCore.Mvc;
-using SimpleFileBrowser.Controllers;
 using SimpleFileBrowser.Models;
+using SimpleFileBrowser.Models.Paths;
 
 namespace SimpleFileBrowser.Services;
 
 public class FileService
 {
-    private FileController _fileController;
+    private readonly PathResolver _pathResolver;
 
-    public FileService(FileController fileController)
+    public FileService(PathResolver pathResolver)
     {
-        _fileController = fileController;
+        _pathResolver = pathResolver;
     }
 
     public FileInformation[] GetFiles(string path)
     {
+        path = _pathResolver.Resolve(path);
+
         return Directory.GetFiles(path)
             .Select(filePath => new FileInfo(filePath))
             .Select(fileInfo => new FileInformation()
@@ -33,6 +34,8 @@ public class FileService
 
     public FolderInformation[] GetFolders(string path)
     {
+        path = _pathResolver.Resolve(path);
+
         return Directory.GetDirectories(path)
             .Select(folderPath => new DirectoryInfo(folderPath))
             .Select(folderInfo => new FolderInformation()
@@ -46,6 +49,7 @@ public class FileService
 
     public HashInformation GetHash(string path)
     {
+        path = _pathResolver.Resolve(path);
         var file = new FileInfo(path);
 
         return new HashInformation()
@@ -58,6 +62,8 @@ public class FileService
 
     public void Rename(string path, string newPath)
     {
+        path = _pathResolver.Resolve(path);
+
         if (Directory.Exists(path))
         {
             Directory.Move(path, newPath);
@@ -72,13 +78,17 @@ public class FileService
         }
     }
 
-    public void CreateFolder(string path, string newPath)
+    public void CreateFolder(string path, string name)
     {
-        Directory.CreateDirectory(newPath);
+        path = _pathResolver.Resolve(path);
+        string folder = Path.Join(path, Path.GetFileName(name));
+        Directory.CreateDirectory(folder);
     }
 
     public void DeleteFileFolder(string path)
     {
+        path = _pathResolver.Resolve(path);
+
         if (Directory.Exists(path))
         {
             Directory.Delete(path, true);

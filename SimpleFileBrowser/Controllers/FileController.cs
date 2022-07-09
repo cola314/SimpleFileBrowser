@@ -11,127 +11,73 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using SimpleFileBrowser.Filters;
+using SimpleFileBrowser.Models.Paths;
 using SimpleFileBrowser.Services;
 
 namespace SimpleFileBrowser.Controllers;
 
+[FileExceptionFilter]
 [ApiController]
 [Route("api")]
 public class FileController : ControllerBase
 {
     private readonly ILogger<FileController> _logger;
     private readonly FileService _fileService;
+    private readonly PathResolver _pathResolver;
 
-    public FileController(ILogger<FileController> logger, FileService fileService)
+    public FileController(ILogger<FileController> logger, FileService fileService, PathResolver pathResolver)
     {
         _logger = logger;
         _fileService = fileService;
+        _pathResolver = pathResolver;
     }
 
     [HttpGet("files/{path}")]
     public ActionResult<FileInformation[]> GetFiles(string path)
     {
-        path = NormalizePath(path);
-
-        try
-        {
-            return _fileService.GetFiles(path);
-        }
-        catch (FileNotFoundException)
-        {
-            return NotFound();
-        }
-    }
-
-    private static string NormalizePath(string path)
-    {
-        return path.Replace('\\', Path.DirectorySeparatorChar);
+        return _fileService.GetFiles(path);
     }
 
     [HttpGet("folders/{path}")]
     public ActionResult<FolderInformation[]> GetFolders(string path)
     {
-        path = NormalizePath(path);
-        try
-        {
-            return _fileService.GetFolders(path);
-        }
-        catch (DirectoryNotFoundException)
-        {
-            return NotFound();
-        }
+        return _fileService.GetFolders(path);
     }
 
     [HttpGet("hash/{path}")]
     public ActionResult<HashInformation> GetHash(string path)
     {
-        path = NormalizePath(path);
-
-        try
-        {
-            return _fileService.GetHash(path);
-        }
-        catch (FileNotFoundException)
-        {
-            return NotFound();
-        }
+        return _fileService.GetHash(path);
     }
 
     [HttpPost("rename/{path}/{name}")]
     public ActionResult RenameFileFolder(string path, string name)
     {
-        path = NormalizePath(path);
-
         string newPath = Path.Join(Path.GetDirectoryName(path), Path.GetFileName(name));
-        try
-        {
-            _fileService.Rename(path, newPath);
-            return Ok();
-        }
-        catch (FileNotFoundException)
-        {
-            return NotFound();
-        }
+
+        _fileService.Rename(path, newPath);
+        return Ok();
     }
 
     [HttpPost("folder/{path}/{name}")]
     public ActionResult CreateFolder(string path, string name)
     {
-        path = NormalizePath(path);
-
-        string newPath = Path.Join(path, Path.GetFileName(name));
-
-        try
-        {
-            _fileService.CreateFolder(path, newPath);
-            return Ok();
-        }
-        catch (DirectoryNotFoundException)
-        {
-            return NotFound();
-        }
+        _fileService.CreateFolder(path, name);
+        return Ok();
     }
 
     [HttpPost("delete/{path}")]
     public ActionResult DeleteFileFolder(string path)
     {
-        path = NormalizePath(path);
-
-        try
-        {
-            _fileService.DeleteFileFolder(path);
-            return Ok();
-        }
-        catch (DirectoryNotFoundException)
-        {
-            return NotFound();
-        }
+        _fileService.DeleteFileFolder(path);
+        return Ok();
     }
 
     [HttpGet("downloadFile/{path}")]
     public FileResult DownloadFile(string path)
     {
-        path = NormalizePath(path);
+        path = _pathResolver.Resolve(path);
 
         return File(System.IO.File.OpenRead(path), "application/octet-stream", Path.GetFileName(path));
     }
@@ -139,7 +85,7 @@ public class FileController : ControllerBase
     [HttpGet("downloadFolder/{path}")]
     public FileResult DownloadFolder(string path)
     {
-        path = NormalizePath(path);
+        path = _pathResolver.Resolve(path);
 
         if (!Directory.Exists("temp"))
         {
@@ -174,7 +120,7 @@ public class FileController : ControllerBase
     [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = int.MaxValue)]
     public ActionResult UploadFileAsync(string path)
     {
-        path = NormalizePath(path);
+        path = _pathResolver.Resolve(path);
 
         try
         {
