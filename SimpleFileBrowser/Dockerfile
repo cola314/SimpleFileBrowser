@@ -1,13 +1,32 @@
-﻿FROM mcr.microsoft.com/dotnet/sdk:6.0
-EXPOSE 9402
-VOLUME ["/usr/app/storage"]
+﻿#See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
-WORKDIR /usr/app
+FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
+WORKDIR /app
+EXPOSE 9420
+VOLUME ["/data"]
+RUN apt-get update
+RUN apt-get install -y curl
+RUN apt-get install -y libpng-dev libjpeg-dev curl libxi6 build-essential libgl1-mesa-glx
+RUN curl -sL https://deb.nodesource.com/setup_lts.x | bash -
+RUN apt-get install -y nodejs
+
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+RUN apt-get update
+RUN apt-get install -y curl
+RUN apt-get install -y libpng-dev libjpeg-dev curl libxi6 build-essential libgl1-mesa-glx
+RUN curl -sL https://deb.nodesource.com/setup_14.x | bash -
+RUN apt-get install -y nodejs
+WORKDIR /src
+COPY ["SimpleFileBrowser/SimpleFileBrowser.csproj", "SimpleFileBrowser/"]
+RUN dotnet restore "SimpleFileBrowser/SimpleFileBrowser.csproj"
 COPY . .
+WORKDIR "/src/SimpleFileBrowser"
+RUN dotnet build "SimpleFileBrowser.csproj" -c Release -o /app/build
 
-RUN apt-get update \
-	&& apt-get install -y curl gnupg \
-	&& curl -sL https://deb.nodesource.com/setup_14.x  | bash - \
-	&& apt-get install -y nodejs
+FROM build AS publish
+RUN dotnet publish "SimpleFileBrowser.csproj" -c Release -o /app/publish
 
-CMD ["dotnet", "run"]
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "SimpleFileBrowser.dll"]

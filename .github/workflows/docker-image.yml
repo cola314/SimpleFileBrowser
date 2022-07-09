@@ -27,7 +27,8 @@ jobs:
         name: Build and push
         uses: docker/build-push-action@v2
         with:
-          context: ./SimpleFileBrowser
+          context: .
+          file: ./SimpleFileBrowser/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: cola314/simple-file-browser:latest
