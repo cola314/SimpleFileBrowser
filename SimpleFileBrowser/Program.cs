@@ -25,7 +25,7 @@ namespace SimpleFileBrowser
                         options.Limits.MaxRequestBodySize = 1073741824;
                     });
                     webBuilder.UseStartup<Startup>();
-                    webBuilder.UseUrls("http://*:9402/");
+                    webBuilder.UseUrls("http://*:80/");
                 });
     }
 }
