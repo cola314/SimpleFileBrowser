@@ -9,7 +9,7 @@ export default function FolderContextMenu({ id, deleteFolder, renameFolder, down
 
   return (
     <>
-      <ContextMenuTrigger id={id}>
+      <ContextMenuTrigger id={id} holdToDisplay={0}>
         {children}
       </ContextMenuTrigger>
 

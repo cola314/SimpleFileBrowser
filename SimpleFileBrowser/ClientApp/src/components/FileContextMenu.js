@@ -6,7 +6,7 @@ export default function FileContextMenu({ id, deleteFile, renameFile, showFileHa
 
   return (
     <>
-      <ContextMenuTrigger id={id}>
+      <ContextMenuTrigger id={id} holdToDisplay={0}>
         {children}
       </ContextMenuTrigger>
 

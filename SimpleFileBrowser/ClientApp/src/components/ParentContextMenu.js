@@ -6,7 +6,7 @@ export default function FileContextMenu({ id, moveDir, children }) {
 
   return (
     <>
-      <ContextMenuTrigger id={id}>
+      <ContextMenuTrigger id={id} holdToDisplay={0}>
         {children}
       </ContextMenuTrigger>
 
