@@ -3,14 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using SimpleFileBrowser.Models;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using SimpleFileBrowser.Filters;
 using SimpleFileBrowser.Models.Paths;
 using SimpleFileBrowser.Services;
@@ -133,10 +127,8 @@ public class FileController : ControllerBase
 
                 var filePath = Path.Join(path, Path.GetFileName(file.FileName));
 
-                using (var fileStream = new FileStream(filePath, FileMode.Create))
-                {
-                    file.CopyTo(fileStream);
-                }
+                using var fileStream = new FileStream(filePath, FileMode.Create);
+                file.CopyTo(fileStream);
             }
             return new OkObjectResult("Yes");
         }
